@@ -1,0 +1,82 @@
+<snippet>
+	<content><![CDATA[
+struct MCBM {
+private:
+    vector<ll> match, vis;
+    vector< vector<ll> > AL;
+    ll V;
+public:
+    MCBM(ll V) {
+        this->V = V;
+        AL.assign(V, {});
+    }
+
+    void add_edge(ll i, ll j) {
+        AL[i].push_back(j);
+    }
+
+    ll Aug(ll L) {
+        if (vis[L]) return 0;                          // L visited, return 0
+        vis[L] = 1;
+        for (auto &R : AL[L]) if ((match[R] == -1) || Aug(match[R])) {
+            match[R] = L;                              // flip status
+            return 1;                                  // found 1 matching
+        }
+        return 0;                                      // no matching
+    }
+
+    ll result(ll Vleft) {
+        unordered_set<ll> freeV;
+        for (ll L = 0; L < Vleft; ++L) freeV.insert(L);// initial assumption
+        match.assign(V, -1);
+        ll MCBM = 0;
+        // Greedy pre-processing for trivial Augmenting Paths
+        // try commenting versus un-commenting this for-loop
+        for (ll L = 0; L < Vleft; ++L) {              // O(V+E)
+            vector<ll> candidates;
+            for (auto &R : AL[L]) if (match[R] == -1) candidates.push_back(R);
+            if ((ll) candidates.size() > 0) {
+              ++MCBM;
+              freeV.erase(L);                          // L is matched
+              ll a = rand()%(ll)candidates.size();     // randomize this
+              match[candidates[a]] = L;
+            }
+        }                                              // for each free vertex
+        for (auto &f : freeV) {                        // (in random order)
+            vis.assign(Vleft, 0);                      // reset first
+            MCBM += Aug(f);                            // try to match f
+        }
+        return MCBM;
+    }
+
+    set<ll> mvc(ll L) {
+        vector< vector<ll> > adj(V);
+        set<ll> leftmatch, res;
+        for (ll i = L; i < V; ++i) {
+            // add edge from right matched to left matched
+            if (match[i] != -1) adj[i].push_back(match[i]), leftmatch.insert(match[i]);
+        }
+        //add edge from left unmatched to right unmatched
+        for (ll i = 0; i < L; ++i) for (ll j : AL[i]) if (match[j] != i) adj[i].push_back(j);
+        vector<bool> vi(V);
+        // dfs from left unmatched
+        for (ll i = 0; i < L; ++i) if (leftmatch.find(i) == leftmatch.end()) {
+            stack<ll> ss({i});
+            while (!ss.empty()) {
+                ll ct = ss.top(); ss.pop();
+                if (vi[ct]) continue;
+                vi[ct] = true;
+                for (ll j : adj[ct]) ss.push(j);
+            }
+        }
+        // left not visited and right visited is mvc
+        for (ll i = 0; i < L; ++i) if (!vi[i]) res.insert(i);
+        for (ll i = L; i < V; ++i) if (vi[i]) res.insert(i);
+        return res;
+    }
+};
+]]></content>
+	<tabTrigger>mcbm</tabTrigger>
+	<description>unweighted mcbm</description>
+	<scope>source.c++</scope>
+</snippet>

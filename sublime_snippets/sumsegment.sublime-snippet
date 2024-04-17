@@ -1,0 +1,81 @@
+<snippet>
+	<content><![CDATA[
+struct SumSegmentTree {
+private:
+    #define lc (n << 1)
+    #define rc ((n << 1) | 1)
+    vector<ll> t, lazy, a;
+    ll N;
+
+    inline void push(ll n, ll b, ll e) {
+        if (lazy[n] == 0) return;
+        t[n] = t[n] + lazy[n] * (e - b + 1);
+        if (b != e) {
+        lazy[lc] = lazy[lc] + lazy[n];
+        lazy[rc] = lazy[rc] + lazy[n];
+        }
+        lazy[n] = 0;
+    }
+
+    inline ll combine(ll a, ll b) {
+        return a + b;
+    }
+
+    inline void pull(ll n) {
+        t[n] = (t[lc] + t[rc]);
+    }
+
+    void build(ll n, ll b, ll e) {
+        lazy[n] = 0;
+        if (b == e) {
+            t[n] = a[b];
+            return;
+        }
+        ll mid = (b + e) >> 1;
+        build(lc, b, mid);
+        build(rc, mid + 1, e);
+        pull(n);
+    }
+
+    void upd(ll n, ll b, ll e, ll i, ll j, ll v) {
+        push(n, b, e);
+        if (j < b || e < i) return;
+        if (i <= b && e <= j) {
+            lazy[n] = v; //set lazy
+            push(n, b, e);
+            return;
+        }
+        ll mid = (b + e) >> 1;
+        upd(lc, b, mid, i, j, v);
+        upd(rc, mid + 1, e, i, j, v);
+        pull(n);
+    }
+
+    ll query(ll n, ll b, ll e, ll i, ll j) {
+        push(n, b, e);
+        if (i > e || b > j) return 0; //return null
+        if (i <= b && e <= j) return t[n];
+        ll mid = (b + e) >> 1;
+        return combine(query(lc, b, mid, i, j), query(rc, mid + 1, e, i, j));
+    }
+public:
+    SumSegmentTree(ll N) {
+        this->N = N;
+        t = vector<ll>(4 * N);
+        lazy = vector<ll>(4 * N);
+        a = vector<ll>(N);
+    }
+
+    void update(ll i, ll j, ll v) {
+        upd(1, 0, N - 1, i, j, v);
+    }
+
+    ll query(ll i, ll j) {
+        return query(1, 0, N - 1, i, j);
+    }
+};
+]]></content>
+	<tabTrigger>sumsegment</tabTrigger>
+	<description>sum segment tree</description>
+	<scope>source.c++</scope>
+</snippet>

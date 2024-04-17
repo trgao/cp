@@ -1,0 +1,130 @@
+<snippet>
+	<content><![CDATA[
+
+const ll INF = 1e18;                             // large enough
+
+class max_flow {
+private:
+    ll V;
+    map<pair<ll, ll>, ll> is;
+    vector< tuple<ll, ll, ll> > EL;
+    vector< vector<ll> > AL;
+    vector<ll> d, last;
+    vector< pair<ll, ll> > p;
+
+    bool BFS(ll s, ll t) {                       // find augmenting path
+        d.assign(V, -1); d[s] = 0;
+        queue<ll> q({s});
+        p.assign(V, {-1, -1});                       // record BFS sp tree
+        while (!q.empty()) {
+            ll u = q.front(); q.pop();
+            if (u == t) break;                         // stop as sink t reached
+            for (auto &idx : AL[u]) {                  // explore neighbors of u
+                auto &[v, cap, flow] = EL[idx];          // stored in EL[idx]
+                if ((cap-flow > 0) && (d[v] == -1))      // positive residual edge
+                    d[v] = d[u]+1, q.push(v), p[v] = {u, idx}; // 3 lines in one!
+            }
+        }
+        return d[t] != -1;                           // has an augmenting path
+    }
+
+    ll send_one_flow(ll s, ll t, ll f = INF) {   // send one flow from s->t
+        if (s == t) return f;                        // bottleneck edge f found
+        auto &[u, idx] = p[t];
+        auto &cap = get<1>(EL[idx]), &flow = get<2>(EL[idx]);
+        ll pushed = send_one_flow(s, u, min(f, cap-flow));
+        flow += pushed;
+        auto &rflow = get<2>(EL[idx^1]);             // back edge
+        rflow -= pushed;                             // back flow
+        return pushed;
+    }
+
+    ll DFS(ll u, ll t, ll f = INF) {             // traverse from s->t
+        if ((u == t) || (f == 0)) return f;
+        for (ll &i = last[u]; i < (ll)AL[u].size(); ++i) { // from last edge
+            auto &[v, cap, flow] = EL[AL[u][i]];
+            if (d[v] != d[u]+1) continue;              // not part of layer graph
+            if (ll pushed = DFS(v, t, min(f, cap-flow))) {
+                flow += pushed;
+                auto &rflow = get<2>(EL[AL[u][i]^1]);     // back edge
+                rflow -= pushed;
+                return pushed;
+            }
+        }
+        return 0;
+    }
+
+public:
+    max_flow(ll initialV) : V(initialV) {
+        EL.clear();
+        AL.assign(V, vector<ll>());
+    }
+
+    // if you are adding a bidirectional edge u<->v with weight w into your
+    // flow graph, set directed = false (default value is directed = true)
+    ll add_edge(ll u, ll v, ll w, bool directed = true) {
+        if (u == v) return -1;                          // safeguard: no self loop
+        EL.emplace_back(v, w, 0);                    // u->v, cap w, flow 0
+        AL[u].push_back(EL.size()-1);                // remember this index
+        is[{u, v}] = EL.size() - 1;
+        EL.emplace_back(u, directed ? 0 : w, 0);     // back edge
+        AL[v].push_back(EL.size()-1);                // remember this index
+        return AL[u].back();
+    }
+
+    ll edmonds_karp(ll s, ll t) {
+        ll mf = 0;                                   // mf stands for max_flow
+        while (BFS(s, t)) {                          // an O(V*E^2) algorithm
+            ll f = send_one_flow(s, t);                // find and send 1 flow f
+            if (f == 0) break;                         // if f == 0, stop
+            mf += f;                                   // if f > 0, add to mf
+        }
+        return mf;
+    }
+
+    ll dinic(ll s, ll t) {
+        ll mf = 0;                                   // mf stands for max_flow
+        while (BFS(s, t)) {                          // an O(V^2*E) algorithm
+            last.assign(V, 0);                         // important speedup
+            while (ll f = DFS(s, t))                   // exhaust blocking flow
+                mf += f;
+        }
+        return mf;
+    }
+
+    set<ll> mincut(ll s, ll t) {
+        dinic(s, t);
+        set<ll> res;
+        queue<ll> q({s});
+        vector<bool> vi(n);
+        vi[s] = true;
+        while (!q.empty()) {
+            ll ct = q.front(); q.pop();
+            res.insert(ct);
+            for (ll i : AL[ct]) {
+                auto& [v, c, f] = EL[i];
+                if (c > f && !vi[v]) vi[v] = true, q.push(v);
+            }
+        }
+        // edges from one set to another set of nodes
+        // for (ll i : res) for (ll j : AL[i]) {
+        //     auto& [v, c, f] = EL[j];
+        //     if (res.find(v) == res.end() && f > 0) do something with edge
+        // }
+        return res;
+    }
+
+    void debug() {
+        for (ll i = 0; i < V; ++i) {
+            for (ll j : AL[i]) {
+                auto& [v, c, f] = EL[j];
+                cout << "From:" << i << " To:" << v << " Cap:" << c << " Flow:" << f << endl;
+            }
+        }
+        cout << "----------MFDEBUG----------\n\n";
+    }
+};
+]]></content>
+	<tabTrigger>maxflow</tabTrigger>
+	<scope>source.c++</scope>
+</snippet>

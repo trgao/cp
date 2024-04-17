@@ -1,0 +1,81 @@
+<snippet>
+	<content><![CDATA[
+const ll INF = 1e18;
+
+struct hungarian {
+private:
+    //internally 1 indexed
+    bool flipped = false; //if n > m, n and m will switch
+    ll n, m;
+    vector< vector<ll> > A; //cost matrix, can change to ld for real numbers
+    vector<ll> u, v; //stores potential, can change to ld for real numbers
+    vector<ll> p; //contains matchings for index 1 to m
+    vector<ll> way; //number of previous column in augmenting path
+    vector< pair<ll, ll> > res; //result of pairs of matching
+public:
+    hungarian(ll n, ll m) {
+        if (n > m) {
+            flipped = true;
+            ll temp = n;
+            n = m;
+            m = temp;
+        }
+        this->n = n, this->m = m;
+        A = vector< vector<ll> >(n + 1, vector<ll>(m + 1)); //can change to ld
+        u = vector<ll>(n + 1); //can change to ld
+        v = vector<ll>(m + 1); //can change to ld
+        p = vector<ll>(m + 1);
+        way = vector<ll>(m + 1);
+    }
+
+    void add_edge(ll u, ll v, ll c) { //can change c to ld
+        if (flipped) A[v + 1][u + 1] = c;
+        else A[u + 1][v + 1] = c;
+    }
+
+    pair<ll, ll> solve() {
+        for (ll i = 1; i <= n; ++i) {
+            p[0] = i;
+            ll j0 = 0;
+            vector<ll> minv (m + 1, INF);
+            vector<bool> used (m + 1, false);
+            do {
+                used[j0] = true;
+                ll i0 = p[j0], delta = INF, j1;
+                for (ll j = 1; j <= m; ++j)
+                    if (!used[j]) {
+                        ll cur = A[i0][j]-u[i0]-v[j];
+                        if (cur < minv[j])
+                            minv[j] = cur,  way[j] = j0;
+                        if (minv[j] < delta)
+                            delta = minv[j],  j1 = j;
+                    }
+                for (ll j = 0; j <= m; ++j)
+                    if (used[j])
+                        u[p[j]] += delta,  v[j] -= delta;
+                    else
+                        minv[j] -= delta;
+                j0 = j1;
+            } while (p[j0] != 0);
+            do {
+                ll j1 = way[j0];
+                p[j0] = p[j1];
+                j0 = j1;
+            } while (j0);
+        }
+        for (ll i = 1; i <= m; ++i) if (p[i]) res.emplace_back(p[i], i);
+        return {-v[0], res.size()}; //by default min cost, remove negative for max
+    }
+
+    void print() {
+        for (auto& [a, b] : res) {
+            if (flipped) cout << b << " " << a << endl;
+            else cout << a << " " << b << endl;
+        }
+    }
+};
+]]></content>
+	<tabTrigger>hungarian</tabTrigger>
+	<description>hungarian algorithm weighted mcbm</description>
+	<scope>source.c++</scope>
+</snippet>
